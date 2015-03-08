@@ -76,14 +76,17 @@ to settings.MIGRATION_MODULES
 1. Add a Section Container plugin to the page;
 2. Add one or more Section plugins into the Section Container;
 3. Add content to each Section plugin as per usual;
-4. Optionally render the menu in a separate plugin by clicking "Create Menu"
-   from the Section Container's menu in structure mode;
 4. Style with CSS to suit your needs;
 5. Optionally add the above JS to your project to provide smooth scrolling
    between sections;
 6. Optionally override or extend the provided templates to further suit your
    needs.
 
+### Rendering the menu separately
+
+The menu plugin works much like the Alias plugin. Click "Create Menu"
+from the Section Container's menu in structure mode. It then goes to
+the clipboard and can be dragged from there to anywhere.
 
 ## ADVANCED USAGE
 
