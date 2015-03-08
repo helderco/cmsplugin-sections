@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible  #, force_text
+from django.utils.encoding import python_2_unicode_compatible, force_text
 from django.utils.translation import ugettext_lazy as _
 
 from .unique_slugify import unique_slugify
@@ -18,7 +18,10 @@ class AbstractSectionContainerPluginModel(CMSPlugin):
 
 
 class SectionContainerPluginModel(AbstractSectionContainerPluginModel):
-    subordinate_page = models.BooleanField(_('subordinate_page?'), default=False)
+    menu = models.BooleanField(_('include menu?'), default=True,
+        help_text=_('The menu can be rendered separately in another plugin. Useful for placement in another placeholder.'))
+    section_links = models.BooleanField(_('include section links?'), default=True,
+        help_text=_('Provides convenient linking between sections by adding links to next and previous sections in each.'))
 
 
 @python_2_unicode_compatible
@@ -84,5 +87,17 @@ class SectionBasePluginModel(AbstractSectionBasePluginModel):
     """
     Defines a common interface for section plugins.
     """
-    
+
     taints_cache = True
+
+
+@python_2_unicode_compatible
+class SectionsMenuPluginModel(CMSPlugin):
+    plugin = models.ForeignKey(CMSPlugin, editable=False, related_name="container_reference", null=True)
+
+    def __str__(self):
+        if self.plugin_id:
+            return "(%s) %s" % (force_text(self.plugin.get_plugin_name()), self.plugin.get_plugin_instance()[0])
+        else:
+            return force_text(self.alias_placeholder.get_label())
+

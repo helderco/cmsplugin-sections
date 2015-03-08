@@ -1,0 +1,9 @@
+<nav class="section-menu">
+  <ul>
+  {% for section in sections %}
+    {% if section.show_in_menu %}
+    <li><a href="#{{ section.section_menu_slug }}">{{ section.section_menu_label }}</a></li>
+    {% endif %}
+  {% endfor %}
+  </ul>
+</nav>

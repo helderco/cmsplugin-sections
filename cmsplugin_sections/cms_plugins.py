@@ -2,11 +2,19 @@
 
 from __future__ import unicode_literals
 
-from cms.models import CMSPlugin
-from cms.plugin_pool import plugin_pool
-from cms.plugin_base import CMSPluginBase
+from django.conf.urls import patterns, url
+from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
+from django.middleware.csrf import get_token
+from django.utils.translation import ugettext_lazy as _
 
-from .models import SectionBasePluginModel
+from cms.models import CMSPlugin
+from cms.plugin_base import CMSPluginBase, PluginMenuItem
+from cms.plugin_pool import plugin_pool
+from cms.utils.plugins import downcast_plugins, build_plugin_tree
+from cms.utils.urlutils import admin_reverse
+
+from .models import (AbstractSectionContainerPluginModel,
+                    SectionContainerPluginModel, SectionBasePluginModel, SectionsMenuPluginModel)
 
 
 class SectionContainerPlugin(CMSPluginBase):
@@ -18,9 +26,9 @@ class SectionContainerPlugin(CMSPluginBase):
     cache = True
     # TODO: Complete this, or set it in settings.
     # child_classes = ['...']
-    model = CMSPlugin
-    module = 'Sections'
-    name = 'Section Container'
+    model = SectionContainerPluginModel
+    module = _('Sections')
+    name = _('Section Container')
     render_template = 'cmsplugin_sections/section-container.html'
     text_enabled = False
 
@@ -37,11 +45,12 @@ class SectionContainerPlugin(CMSPluginBase):
             prev_child = None
             next_child = None
 
-            if i > 0:
-                prev_child = instance.child_plugin_instances[i-1]
+            if instance.section_links:
+                if i > 0:
+                    prev_child = instance.child_plugin_instances[i-1]
 
-            if i < len(instance.child_plugin_instances) - 1:
-                next_child = instance.child_plugin_instances[i+1]
+                if i < len(instance.child_plugin_instances) - 1:
+                    next_child = instance.child_plugin_instances[i+1]
 
             children.append({
                 'prev': prev_child,
@@ -52,15 +61,11 @@ class SectionContainerPlugin(CMSPluginBase):
         return children
 
     def render(self, context, instance, placeholder):
-
-        section_menu_items = []
-
-        for child in instance.child_plugin_instances:
-            if child.show_in_menu:
-                section_menu_items.append(child)
-
+        context['instance'] = instance
         context['children'] = self.get_children(instance)
-        context['sections'] = section_menu_items
+
+        if instance.menu:
+            context['sections'] = instance.child_plugin_instances
 
         return context
 
@@ -83,11 +88,11 @@ class BaseSectionPlugin(CMSPluginBase):
     # These properties CAN be overridden
     cache = True
     model = SectionBasePluginModel
-    module = 'Sections'
+    module = _('Sections')
     render_template = "cmsplugin_sections/section-base.html"
 
     # These properties MUST be overridden
-    name = 'Unnamed Section'
+    name = _('Unnamed Section')
 
 
     def render(self, context, instance, placeholder):
@@ -107,8 +112,82 @@ class SectionPlugin(BaseSectionPlugin):
     cache = True
     allow_children = True
     model = SectionBasePluginModel
-    name = 'Section'
+    name = _('Section')
     render_template = "cmsplugin_sections/section.html"
     text_enabled = False
 
 plugin_pool.register_plugin(SectionPlugin)
+
+
+class SectionsMenuPlugin(CMSPluginBase):
+    """
+    Sections menu plugin created from an existing sections container. Allows
+    rendering the menu in a separate placeholder or position in the page.
+    """
+
+    model = SectionsMenuPluginModel
+    module = _('Sections')
+    name = _('Sections Menu')
+    render_template = "cmsplugin_sections/section-menu.html"
+    allow_children = False
+    parent_classes = [0] # so you will not be able to add it directly
+    cache = True
+
+    def render(self, context, instance, placeholder):
+        context['instance'] = instance
+        context['placeholder'] = placeholder
+
+        sections = []
+        if instance.plugin_id:
+            plugins = instance.plugin.get_descendants(include_self=True).order_by('placeholder', 'tree_id', 'level', 'position')
+            plugins = downcast_plugins(plugins)
+            plugins[0].parent_id = None
+            plugins = build_plugin_tree(plugins)
+
+            for section in plugins[0].child_plugin_instances:
+                sections.append(section)
+
+        context['sections'] = sections
+        return context
+
+    def get_extra_global_plugin_menu_items(self, request, plugin):
+        if isinstance(plugin, AbstractSectionContainerPluginModel):
+            return [
+                PluginMenuItem(
+                    _("Create Menu"),
+                    admin_reverse("create_sections_menu"),
+                    data={'plugin_id': plugin.pk, 'csrfmiddlewaretoken': get_token(request)},
+                )
+            ]
+
+    def get_plugin_urls(self):
+        urlpatterns = [
+            url(r'^create_menu/$', self.create_menu, name='create_sections_menu'),
+        ]
+        return patterns('', *urlpatterns)
+
+    def create_menu(self, request):
+        if not request.user.is_staff:
+            return HttpResponseForbidden("not enough privileges")
+
+        if not 'plugin_id' in request.POST:
+            return HttpResponseBadRequest("plugin_id POST parameter missing.")
+
+        pk = request.POST['plugin_id']
+
+        try:
+            plugin = CMSPlugin.objects.get(pk=pk)
+        except CMSPlugin.DoesNotExist:
+            return HttpResponseBadRequest("plugin with id %s not found." % pk)
+
+        clipboard = request.toolbar.clipboard
+        clipboard.cmsplugin_set.all().delete()
+        language = plugin.language
+
+        menu = SectionsMenuPluginModel(language=language, placeholder=clipboard, plugin_type='SectionsMenuPlugin')
+        menu.plugin = plugin
+        menu.save()
+
+        return HttpResponse("ok")
+
+plugin_pool.register_plugin(SectionsMenuPlugin)
