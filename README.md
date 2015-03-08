@@ -1,13 +1,13 @@
 cmsplugin-sections
 ==================
 
-This is a plugin "system" (really just two) for making "single-page scroller"
+This is a plugin "system" (really just three) for making "single-page scroller"
 websites super easy.
 
-It provides a Section Container plugin and a generic Section plugin out of the
-box. Section Containers allow Section plugins to be added inside them. Section
-plugins will allow anything inside them, but have some basic configuration of
-their own, namely:
+It provides a Section Container plugin, a generic Section plugin and an
+optional Sections Menu plugin out of the box. Section Containers allow
+Section plugins to be added inside them. Section plugins will allow anything
+inside them, but have some basic configuration of their own, namely:
 
 1. Title - The title of the section;
 
@@ -22,12 +22,14 @@ their own, namely:
 
 
 The Section Container will render all of its children plugins, but first, it
-will emit basic menu markup of the contained sections.
+will emit basic menu markup of the contained sections. You can also choose to
+render the menu separately in an another plugin if you need to place it
+somewhere else.
 
 Now your operators can move sections around, and the in-page menu will stay up
 to date.
 
-For your section-linking convenience, each Section plugin will also emit links
+For your section-linking convenience, each Section plugin can also emit links
 to the previous and next sections, if present.
 
 You will need to provide some CSS styling and possibly some JS for nice,
@@ -40,7 +42,7 @@ that use jQuery:
     //
     // Provide graceful scrolling around the page
     //
-    $("nav.page").on('click', 'a', function(evt) {
+    $("nav.section-menu").on('click', 'a', function(evt) {
       var $this = $(this),
           target = $this.attr('href');
 
@@ -74,10 +76,12 @@ to settings.MIGRATION_MODULES
 1. Add a Section Container plugin to the page;
 2. Add one or more Section plugins into the Section Container;
 3. Add content to each Section plugin as per usual;
-4. Style with CSS to suite your needs;
+4. Optionally render the menu in a separate plugin by clicking "Create Menu"
+   from the Section Container's menu in structure mode;
+4. Style with CSS to suit your needs;
 5. Optionally add the above JS to your project to provide smooth scrolling
    between sections;
-6. Optionally override or extend the provided templates to further suite your
+6. Optionally override or extend the provided templates to further suit your
    needs.
 
 
@@ -89,9 +93,9 @@ operators to choose from. However, there may be some cases where it makes
 sense to just create a custom Section plugin.
 
 Both the Section Container and the Section plugin were built in a manner that
-provides easy extention via subclassing a "base" plugin and a "base" plugin
+provides easy extension via subclassing a "base" plugin and a "base" plugin
 model. This makes it pretty straightforward to create your own, pluggable
-sections types for your operators.
+section types for your operators.
 
 If you plan to create your own, custom Sections for your project, your
 `models.py` might looks something like this:
@@ -102,15 +106,15 @@ from cmsplugin_sections.models import AbstractSectionBasePluginModel
 
 class SplashSectionPluginModel(AbstractSectionBasePluginModel):
 	#
-    # Include project-specific Section Plugin configuration here. Or not. See
-	# note below.
+    # Include project-specific Section Plugin configuration here. Or not.
+	# See note below.
 	#
     pass
 
 ````
 
 NOTE:
-	
+
 	If is entirely optional to create your own pluginmodel if you don't need
 	to add configuration options. You *could* just use the provided one, but,
 	if you ever change your mind, it will be rather complicated to migrate any
@@ -123,8 +127,8 @@ NOTE:
 Your `cms_plugins.py` might look like this:
 
 ```` python
-from cmsplugin_sections.cms_plugins import BaseSectionPlugin
 # Assumes models.py and cms_plugins.py are at the same level in your project.
+from .cms_plugins import BaseSectionPlugin
 from .models import SplashSectionPluginModel
 
 class SplashSectionPlugin(BaseSectionPlugin):
