@@ -1,12 +1,11 @@
-<section id="{{ instance.section_menu_slug }}">
-  <div class="outer">
-    <div class="inner">
-      {% block section_content %}
-      {% endblock %}{% if prev or next %}
-      <div class="section-links">
-        {% if prev %}<a class="prev" href="#{{ prev.section_menu_slug }}">{{ prev.section_menu_label }}</a>{% endif %}
-        {% if next %}<a class="next" href="#{{ next.section_menu_slug }}">{{ next.section_menu_label }}</a>{% endif %}
-      </div>{% endif %}
-    </div>
-  </div>
-</section>
+<article id="{{ instance.section_menu_slug }}">
+  {% if instance.show_title %}<h2>{{ instance.section_title }}</h2>{% endif %}
+  {% block section_content %}
+  {% endblock %}{% if prev or next %}
+  <div class="section-links">
+    <ul>
+      {% if prev %}<li class="prev"><a href="#{{ prev.section_menu_slug }}">{{ prev.section_menu_label }}</a></li>{% endif %}
+      {% if next %}<li class="next"><a href="#{{ next.section_menu_slug }}">{{ next.section_menu_label }}</a></li>{% endif %}
+    </ul>
+  </div>{% endif %}
+</article>

@@ -1,18 +1,9 @@
-{% load cms_tags %}
+{% if sections %}
 <header class="page">
-  <a class="logo" href="/#{{ sections.0.section_menu_slug }}"><img src=""></a>
-  <nav class="page">
-    <div class="menu">
-      <ul class="section-menu">{% for section in sections %}
-        <li><a href="#{{ section.section_menu_slug }}">{{ section.section_menu_label }}</a></li>{% endfor %}
-      </ul>
-    </div>
-  </nav>
+  <a class="logo" href="#{{ sections.0.section_menu_slug }}"></a>
+  {% include 'cmsplugin_sections/section-menu.html' %}
 </header>
-<div>
-  {% for child_section in children %}
-    {% with next=child_section.next prev=child_section.prev %}
-    {% render_plugin child_section.child  %}
-    {% endwith %}
-  {% endfor %}
-</div>
+{% endif %}
+<main>
+  {% include 'cmsplugin_sections/section-children.html' %}
+</main>

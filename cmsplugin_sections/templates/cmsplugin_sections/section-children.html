@@ -1,0 +1,6 @@
+{% load cms_tags %}
+{% for child_section in children %}
+  {% with next=child_section.next prev=child_section.prev %}
+  {% render_plugin child_section.child  %}
+  {% endwith %}
+{% endfor %}
